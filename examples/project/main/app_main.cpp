@@ -22,14 +22,21 @@
 
 #include <app/server/CommissioningWindowManager.h>
 #include <app/server/Server.h>
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "ssd1306.h"
+#include "bh1750.h"
 
 static const char *TAG = "app_main";
 uint16_t light_endpoint_id = 0;
+uint16_t light_sensor_endpoint_id = 0;
+extern bh1750_handle_t light_sensor_handle;
 
 using namespace esp_matter;
 using namespace esp_matter::attribute;
 using namespace esp_matter::endpoint;
-using namespace chip::app::Clusters;
+using namespace chip::app::Clusters; 
 
 constexpr auto k_timeout_seconds = 300;
 
@@ -106,11 +113,6 @@ static void app_event_cb(const ChipDeviceEvent *event, intptr_t arg)
     case chip::DeviceLayer::DeviceEventType::kFabricCommitted:
         ESP_LOGI(TAG, "Fabric is committed");
         break;
-
-    case chip::DeviceLayer::DeviceEventType::kBLEDeinitialized:
-        ESP_LOGI(TAG, "BLE deinitialized and memory reclaimed");
-        break;
-
     default:
         break;
     }
@@ -138,7 +140,6 @@ static esp_err_t app_attribute_update_cb(attribute::callback_type_t type, uint16
         app_driver_handle_t driver_handle = (app_driver_handle_t)priv_data;
         err = app_driver_attribute_update(driver_handle, endpoint_id, cluster_id, attribute_id, val);
     }
-
     return err;
 }
 
@@ -152,7 +153,26 @@ extern "C" void app_main()
     /* Initialize driver */
     app_driver_handle_t light_handle = app_driver_light_init();
     app_driver_handle_t button_handle = app_driver_button_init();
+    //app_driver_handle_t light_sensor_handle = app_driver_light_sensor_init();
+    
     app_reset_button_register(button_handle);
+    
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = 21,   // Set SDA pin number
+        .scl_io_num = 23,   // Set SCL pin number
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master = {
+            .clk_speed = 100000 // Set I2C clock frequency to 100kHz
+        }
+    };
+    i2c_param_config(I2C_PORT, &conf);
+    i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    
+    // initialise BH1750 sensor
+    bh1750_handle_t light_sensor_handle = bh1750_create(I2C_PORT, BH1750_ADDR);
+
 
     /* Create a Matter node and add the mandatory Root Node device type on endpoint 0 */
     node::config_t node_config;
@@ -167,6 +187,23 @@ extern "C" void app_main()
     light_config.color_control.enhanced_color_mode = EMBER_ZCL_ENHANCED_COLOR_MODE_COLOR_TEMPERATURE;
     light_config.color_control.color_temperature.startup_color_temperature_mireds = nullptr;
     endpoint_t *endpoint = extended_color_light::create(node, &light_config, ENDPOINT_FLAG_NONE, light_handle);
+    
+    //Add Hue_Saturation feature to allow RGB function
+    cluster_t *cluster = cluster::get(endpoint, ColorControl::Id);
+    cluster::color_control::feature::hue_saturation::config_t hs_config;
+    hs_config.current_hue = DEFAULT_HUE;
+    hs_config.current_saturation = DEFAULT_SATURATION;
+    cluster::color_control::feature::hue_saturation::add(cluster, &hs_config);
+    //attribute::callback_type::READ
+
+    light_sensor::config_t light_sensor_config;
+    //light_sensor_config.illuminance_measurement.cluster_revision = 3;
+    //light_sensor_config.illuminance_measurement.illuminance_min_measured_value = nullptr;
+    //light_sensor_config.illuminance_measurement.illuminance_max_measured_value = nullptr;
+    light_sensor_config.illuminance_measurement.illuminance_measured_value = nullptr;
+    endpoint_t *endpoint_c = light_sensor::create(node, &light_sensor_config, ENDPOINT_FLAG_NONE, light_sensor_handle);
+    
+
 
     /* These node and endpoint handles can be used to create/add other endpoints and clusters. */
     if (!node || !endpoint) {
@@ -175,6 +212,10 @@ extern "C" void app_main()
 
     light_endpoint_id = endpoint::get_id(endpoint);
     ESP_LOGI(TAG, "Light created with endpoint_id %d", light_endpoint_id);
+
+    light_sensor_endpoint_id = endpoint::get_id(endpoint_c);
+    ESP_LOGI(TAG, "Light Sensor created with endpoint_id %d", light_sensor_endpoint_id);
+
 
 #if CHIP_DEVICE_CONFIG_ENABLE_THREAD
     /* Set OpenThread platform config */
@@ -194,7 +235,10 @@ extern "C" void app_main()
 
     /* Starting driver with default values */
     app_driver_light_set_defaults(light_endpoint_id);
+    xTaskCreate(sensor_display_task, "SensorDisplayTask", 4096, NULL, 5, NULL);
 
+
+    //xTaskCreate(sensor_display_task, "SensorDisplayTask", 4096, NULL, 5, NULL);
 #if CONFIG_ENABLE_ENCRYPTED_OTA
     err = esp_matter_ota_requestor_encrypted_init(s_decryption_key, s_decryption_key_len);
     if (err != ESP_OK) {

@@ -1,6 +1,4 @@
 dependencies:
-  espressif/esp_encrypted_img: "^2.1.0"
-  espressif/ssd1306: "^1.0.5~1"
   espressif/bh1750: "^1.0.3"
   espressif/cmake_utilities:
     version: 0.*
