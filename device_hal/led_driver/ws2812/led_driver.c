@@ -59,22 +59,27 @@ esp_err_t led_driver_set_power(led_driver_handle_t handle, bool power)
 esp_err_t led_driver_set_RGB(led_driver_handle_t handle)
 {
     esp_err_t err = ESP_OK;
-    if (!handle) {
-        ESP_LOGE(TAG, "led driver handle cannot be NULL");
-        err = ESP_FAIL;
-    } else {
-        led_strip_t *strip = (led_strip_t *)handle;
-        err = strip->set_pixel(strip, 0, mRGB.red, mRGB.green, mRGB.blue);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "strip_set_pixel failed");
-            return err;
-        }
-        ESP_LOGI(TAG, "led set r:%d, g:%d, b:%d", mRGB.red, mRGB.green, mRGB.blue);
-        err = strip->refresh(strip, 100);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "strip_refresh failed");
+    for (int led_index = 0; led_index < 12; led_index++)
+    {
+        if (!handle) {
+            ESP_LOGE(TAG, "led driver handle cannot be NULL");
+            err = ESP_FAIL;
+        } 
+        else {
+            led_strip_t *strip = (led_strip_t *)handle;
+            err = strip->set_pixel(strip, led_index, mRGB.red, mRGB.green, mRGB.blue);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "strip_set_pixel failed");
+                return err;
+            }
+            ESP_LOGI(TAG, "led set r:%d, g:%d, b:%d", mRGB.red, mRGB.green, mRGB.blue);
+            err = strip->refresh(strip, 100);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "strip_refresh failed");
+            }
         }
     }
+
     return err;
 }
 
