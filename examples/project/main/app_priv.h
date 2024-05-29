@@ -33,6 +33,12 @@
 #define DEFAULT_HUE 128
 #define DEFAULT_SATURATION 254
 
+//illuminance sets
+#define DEFAULT_ILLUMINANANCE 0
+#define I2C_PORT        I2C_NUM_0
+#define SSD1306_ADDR    0x3C
+#define BH1750_ADDR     0x23 
+
 typedef void *app_driver_handle_t;
 
 /** Initialize the light driver
@@ -43,6 +49,15 @@ typedef void *app_driver_handle_t;
  * @return NULL in case of failure.
  */
 app_driver_handle_t app_driver_light_init();
+
+/** Initialize the light sensor driver
+ *
+ * This initializes the light sensor driver associated with the selected board.
+ *
+ * @return Handle on success.
+ * @return NULL in case of failure.
+ */
+//app_driver_handle_t app_driver_light_sensor_init();
 
 /** Initialize the button driver
  *
@@ -68,6 +83,19 @@ app_driver_handle_t app_driver_button_init();
  */
 esp_err_t app_driver_attribute_update(app_driver_handle_t driver_handle, uint16_t endpoint_id, uint32_t cluster_id,
                                       uint32_t attribute_id, esp_matter_attr_val_t *val);
+
+/** Custom Driver Update
+ * 
+ * Custom API for updating ESP Matter Attribute Values with sensor readings
+ */
+void sensor_display_task(void *pvParameters);
+
+/**test READ CB API
+ * 
+ */
+/*esp_err_t app_driver_attribute_test_update(app_driver_handle_t driver_handle, uint16_t endpoint_id, uint32_t cluster_id,
+                                      uint32_t attribute_id, esp_matter_attr_val_t *val);
+                                      */
 
 /** Set defaults for light driver
  *
