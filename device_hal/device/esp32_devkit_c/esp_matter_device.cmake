@@ -4,7 +4,7 @@ if (NOT ("${IDF_TARGET}" STREQUAL "esp32" ))
 endif()
 
 SET(device_type     esp32_devkit_c)
-SET(led_type        gpio)
+SET(led_type        ws2812)
 SET(button_type     iot)
 
 SET(extra_components_dirs_append    "$ENV{ESP_MATTER_DEVICE_PATH}/../../led_driver"
