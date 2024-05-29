@@ -9,7 +9,7 @@ See the [docs](https://docs.espressif.com/projects/esp-matter/en/latest/esp32/de
 
 In order to successfully build the project, make sure of the following.
 - The project is based on the esp-matter release/v1.2 version of the project. Either checkout to this project branch or if you're developing from the esp-matter project on github, checkout to the [release/v1.2 branch](https://github.com/espressif/esp-matter/tree/release/v1.2)
-- In the connectedhomeip submodule, checkout to the [v1.2-branch-esp branch](https://github.com/espressif/connectedhomeip/tree/v1.2-branch-esp))
+- In the connectedhomeip submodule, checkout to the [v1.2-branch-esp branch](https://github.com/espressif/connectedhomeip/tree/v1.2-branch-esp)
 
 ## 2. Post Commissioning Setup
 
